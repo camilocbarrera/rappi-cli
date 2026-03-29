@@ -1,11 +1,35 @@
 {
   "name": "rappi-cli",
+  "version": "1.0.0",
+  "description": "Order from Rappi via terminal, REST API, or MCP server for Claude",
+  "author": "Cristian Correa",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crisforge/rappi-cli"
+  },
+  "keywords": [
+    "rappi",
+    "cli",
+    "food-delivery",
+    "mcp",
+    "claude",
+    "hono",
+    "bun",
+    "colombia"
+  ],
   "bin": {
     "rappi": "index.ts"
   },
   "module": "index.ts",
   "type": "module",
-  "private": true,
+  "files": [
+    "index.ts",
+    "server.ts",
+    "src/**/*.ts",
+    "README.md",
+    "CLAUDE.md"
+  ],
   "scripts": {
     "setup": "bun run src/setup.ts",
     "whoami": "bun run src/commands/whoami.ts",
@@ -21,7 +45,8 @@
     "tip": "bun run src/commands/tip.ts",
     "login": "bun run src/commands/login.ts",
     "addresses": "bun run src/commands/addresses.ts",
-    "server": "bun run server.ts"
+    "server": "bun run server.ts",
+    "mcp": "bun run src/mcp/index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
