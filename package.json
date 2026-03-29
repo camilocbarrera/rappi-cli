@@ -58,7 +58,9 @@
     "@hono/zod-validator": "^0.7.6",
     "@modelcontextprotocol/sdk": "^1.28.0",
     "hono": "^4.12.9",
-    "playwright": "^1.58.2",
     "zod": "^4.3.6"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.58.2"
   }
 }

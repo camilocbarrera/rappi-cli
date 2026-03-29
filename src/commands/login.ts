@@ -1,4 +1,3 @@
-import { chromium } from "playwright";
 import { saveConfig } from "../config";
 import { getUser, isPrime } from "../services/auth";
 import { getAddresses } from "../services/address";
@@ -6,7 +5,27 @@ import type { RappiConfig } from "../schemas/config";
 
 const R = "\x1b[38;2;255;68;31m";
 const G = "\x1b[32m";
+const Y = "\x1b[33m";
 const X = "\x1b[0m";
+
+let chromium: typeof import("playwright").chromium;
+
+try {
+  ({ chromium } = await import("playwright"));
+} catch {
+  console.log(`\n${R}Playwright is not installed${X}\n`);
+  console.log(`The ${Y}rappi login${X} command uses a browser to capture your auth token automatically.`);
+  console.log(`To use it, install Playwright:\n`);
+  console.log(`  ${G}bun add playwright${X}\n`);
+  console.log(`Or skip browser login and set your token manually:\n`);
+  console.log(`  ${G}rappi setup <bearer-token> [lat] [lng]${X}\n`);
+  console.log(`To get your token:`);
+  console.log(`  1. Open ${Y}https://www.rappi.com.co${X} in your browser`);
+  console.log(`  2. Log in and open DevTools (F12) → Network tab`);
+  console.log(`  3. Find any request to ${Y}services.grability.rappi.com${X}`);
+  console.log(`  4. Copy the ${Y}Authorization${X} header value (starts with ${Y}ft.gAAAAA...${X})\n`);
+  process.exit(1);
+}
 
 console.log(`${R}Rappi CLI Login${X}`);
 console.log("Opening browser — log in to your Rappi account...\n");
@@ -27,8 +46,6 @@ const page = await context.newPage();
 let capturedToken: string | null = null;
 let capturedDeviceId: string | null = null;
 
-// Intercept responses to the /ms/application-user/auth endpoint
-// This only fires after a real login (not guest tokens)
 page.on("response", async (response) => {
   const url = response.url();
   if (url.includes("/ms/application-user/auth") && response.status() === 200) {
@@ -39,7 +56,6 @@ page.on("response", async (response) => {
     if (authHeader?.startsWith("Bearer ft.")) {
       try {
         const body = await response.json();
-        // Only capture if it returns actual user data (not an error)
         if (body?.id && body?.email) {
           capturedToken = authHeader.replace("Bearer ", "");
           if (deviceHeader) capturedDeviceId = deviceHeader;
@@ -54,7 +70,6 @@ await page.goto("https://www.rappi.com.co/login");
 console.log("Waiting for you to log in...");
 console.log("(The browser will close automatically after login)\n");
 
-// Wait for the authenticated token (max 5 minutes)
 const timeout = 5 * 60 * 1000;
 const start = Date.now();
 
@@ -87,7 +102,6 @@ try {
   const prime = await isPrime(config);
   console.log(`  Prime: ${prime ? "Yes" : "No"}`);
 
-  // Auto-sync with active delivery address
   try {
     const { addresses } = await getAddresses(config);
     const active = addresses.find((a) => a.active);
