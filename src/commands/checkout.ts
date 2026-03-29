@@ -1,6 +1,7 @@
 import { loadConfig } from "../config";
 import { recalculateCart } from "../services/cart";
 import { getCheckoutDetail, getCheckoutWidgets, setTip } from "../services/checkout";
+import { printTable, withSpinner, rappiOrangeBold, dim, bold, success, warn, hint } from "../ui";
 
 const storeType = process.argv[2] || "restaurant";
 const tipArg = process.argv[3];
@@ -9,78 +10,71 @@ const config = await loadConfig();
 if (tipArg !== undefined) {
   const tip = parseInt(tipArg);
   await setTip(storeType, tip, config);
-  console.log(tip > 0 ? `Tip set to $${tip.toLocaleString("es-CO")}` : "Tip removed.");
+  console.log(tip > 0 ? `\n  ${success("\u2713")} Tip set to ${bold(`$${tip.toLocaleString("es-CO")}`)}` : `\n  ${success("\u2713")} Tip removed`);
 }
 
-console.log("Preparing checkout...\n");
-
-// 1. Recalculate cart
-const cart = await recalculateCart(storeType, config);
+const cart = await withSpinner("Preparing checkout...", () => recalculateCart(storeType, config));
 
 if (!cart.stores?.length) {
-  console.log("Cart is empty. Add items first with: bun run add-to-cart");
+  console.log("\n  Cart is empty. Add items first.\n");
   process.exit(0);
 }
 
-for (const store of cart.stores) {
-  const open = store.is_open ? "OPEN" : "CLOSED";
-  const valid = store.valid ? "" : " (INVALID)";
-  console.log(`  ${store.name} [${store.id}] — ${open}${valid}`);
-  console.log(`  ETA: ${store.eta_label}`);
+console.log(`\n  ${rappiOrangeBold("Checkout Preview")}\n`);
 
-  for (const p of store.products) {
-    const price =
-      p.total > 0
+for (const store of cart.stores) {
+  const status = store.is_open ? success("OPEN") : warn("CLOSED");
+  const valid = store.valid ? "" : ` ${warn("INVALID")}`;
+
+  printTable({
+    title: `${store.name} [${store.id}] ${status}${valid}`,
+    head: ["Product", "Qty", "Price", ""],
+    rows: store.products.map((p: any) => {
+      const price = p.total > 0
         ? `$${p.total.toLocaleString("es-CO")}`
         : `$${p.price.toLocaleString("es-CO")}`;
-    const avail = p.available ? "" : " (not available)";
-    console.log(`    ${p.name} x${p.units} — ${price}${avail}`);
-  }
+      const avail = p.available ? null : warn("not available");
+      return [p.name, `x${p.units}`, price, avail];
+    }),
+  });
 
   if (store.charges?.length) {
     for (const c of store.charges) {
       if (c.total > 0) {
-        console.log(`    ${c.charge_type}: $${c.total.toLocaleString("es-CO")}`);
+        console.log(`  ${dim(c.charge_type)}  $${c.total.toLocaleString("es-CO")}`);
       }
     }
   }
-  console.log(`  Store total: $${store.total.toLocaleString("es-CO")}`);
-  console.log("");
+  console.log(`  ${dim("ETA")} ${store.eta_label}  ${dim("Store total")} ${bold(`$${store.total.toLocaleString("es-CO")}`)}\n`);
 }
 
-// 2. Checkout detail (order summary)
+// Order summary
 try {
-  const detail = await getCheckoutDetail(storeType, config);
+  const detail = await withSpinner("Loading summary...", () => getCheckoutDetail(storeType, config));
   if (detail.summary?.length) {
-    console.log("Order Summary:");
+    console.log(`  ${rappiOrangeBold("Order Summary")}\n`);
     for (const section of detail.summary) {
       if (section.header?.title) {
-        console.log(`\n  ${section.header.title}`);
+        console.log(`  ${bold(section.header.title)}`);
       }
       for (const d of section.details) {
         if (d.type === "separator") {
-          console.log(`  ${"─".repeat(30)}`);
+          console.log(`  ${dim("\u2500".repeat(40))}`);
         } else if (d.key && d.value) {
           const key = d.key.replace(/<[^>]*>/g, "");
           const val = d.value.replace(/<[^>]*>/g, "");
-          console.log(`  ${key.padEnd(30)} ${val}`);
+          console.log(`  ${dim(key.padEnd(30))} ${val}`);
         }
       }
     }
   }
-} catch {
-  // Checkout detail may fail if store is closed
-}
+} catch {}
 
-// 3. Show checkout widgets (payment, address, etc.)
+// Checkout steps
 try {
   const widgets = await getCheckoutWidgets(storeType, config);
   const types = widgets.map((w) => w.component_type);
-  console.log(`\nCheckout steps: ${types.join(" → ")}`);
-} catch {
-  // May fail
-}
+  console.log(`\n  ${dim("Steps:")} ${types.join(` ${dim("\u2192")} `)}`);
+} catch {}
 
-console.log(
-  '\nTo place the order: bun run place-order [restaurant]'
-);
+console.log(`\n  ${dim("Place order:")} ${hint("rappi place-order")}\n`);

@@ -2,33 +2,29 @@ import { saveConfig } from "../config";
 import { getUser, isPrime } from "../services/auth";
 import { getAddresses } from "../services/address";
 import type { RappiConfig } from "../schemas/config";
-
-const R = "\x1b[38;2;255;68;31m";
-const G = "\x1b[32m";
-const Y = "\x1b[33m";
-const X = "\x1b[0m";
+import { printDetail, ok, fail, rappiOrangeBold, dim, bold, success, warn, hint } from "../ui";
 
 let chromium: typeof import("playwright").chromium;
 
 try {
   ({ chromium } = await import("playwright"));
 } catch {
-  console.log(`\n${R}Playwright is not installed${X}\n`);
-  console.log(`The ${Y}rappi login${X} command uses a browser to capture your auth token automatically.`);
-  console.log(`To use it, install Playwright:\n`);
-  console.log(`  ${G}bun add playwright${X}\n`);
-  console.log(`Or skip browser login and set your token manually:\n`);
-  console.log(`  ${G}rappi setup <bearer-token> [lat] [lng]${X}\n`);
-  console.log(`To get your token:`);
-  console.log(`  1. Open ${Y}https://www.rappi.com.co${X} in your browser`);
-  console.log(`  2. Log in and open DevTools (F12) → Network tab`);
-  console.log(`  3. Find any request to ${Y}services.grability.rappi.com${X}`);
-  console.log(`  4. Copy the ${Y}Authorization${X} header value (starts with ${Y}ft.gAAAAA...${X})\n`);
+  console.log(`\n${fail("Playwright is not installed")}\n`);
+  console.log(`  The ${bold("rappi login")} command uses a browser to capture your auth token.`);
+  console.log(`  To use it, install Playwright:\n`);
+  console.log(`    ${hint("bun add playwright")}\n`);
+  console.log(`  Or skip browser login and set your token manually:\n`);
+  console.log(`    ${hint("rappi setup <bearer-token> [lat] [lng]")}\n`);
+  console.log(`  ${dim("To get your token:")}`);
+  console.log(`  ${dim("1.")} Open ${hint("https://www.rappi.com.co")} in your browser`);
+  console.log(`  ${dim("2.")} Log in and open DevTools (F12) → Network tab`);
+  console.log(`  ${dim("3.")} Find any request to ${hint("services.grability.rappi.com")}`);
+  console.log(`  ${dim("4.")} Copy the Authorization header value ${dim("(starts with ft.gAAAAA...)")}\n`);
   process.exit(1);
 }
 
-console.log(`${R}Rappi CLI Login${X}`);
-console.log("Opening browser — log in to your Rappi account...\n");
+console.log(`\n  ${rappiOrangeBold("Rappi CLI Login")}`);
+console.log(`  ${dim("Opening browser — log in to your Rappi account...")}\n`);
 
 const browser = await chromium.launch({
   headless: false,
@@ -67,8 +63,8 @@ page.on("response", async (response) => {
 
 await page.goto("https://www.rappi.com.co/login");
 
-console.log("Waiting for you to log in...");
-console.log("(The browser will close automatically after login)\n");
+console.log(`  ${dim("Waiting for you to log in...")}`);
+console.log(`  ${dim("(The browser will close automatically after login)")}\n`);
 
 const timeout = 5 * 60 * 1000;
 const start = Date.now();
@@ -80,11 +76,11 @@ while (!capturedToken && Date.now() - start < timeout) {
 await browser.close();
 
 if (!capturedToken) {
-  console.error("Login timed out. Please try again.");
+  console.log(`\n${fail("Login timed out. Please try again.")}\n`);
   process.exit(1);
 }
 
-console.log(`${G}Token captured!${X} Verifying...`);
+console.log(`${ok("Token captured!")} ${dim("Verifying...")}`);
 
 const config: RappiConfig = {
   token: capturedToken,
@@ -95,30 +91,36 @@ const config: RappiConfig = {
 
 try {
   const user = await getUser(config);
-  console.log(`\n  ${G}Welcome, ${user.name}!${X}`);
-  console.log(`  Email: ${user.email}`);
-  console.log(`  Phone: ${user.country_code}${user.phone}`);
-
   const prime = await isPrime(config);
-  console.log(`  Prime: ${prime ? "Yes" : "No"}`);
 
+  let addressLabel: string | undefined;
   try {
     const { addresses } = await getAddresses(config);
     const active = addresses.find((a) => a.active);
     if (active) {
       config.lat = active.lat;
       config.lng = active.lng;
-      const label = active.tag || active.address;
-      console.log(`  Address: ${label} (${active.address})`);
+      addressLabel = `${active.tag || active.address} (${active.address})`;
     }
   } catch {}
 
-  console.log(`  Coords: ${config.lat}, ${config.lng}`);
+  printDetail(`Welcome, ${user.name}!`, [
+    ["Email", user.email],
+    ["Phone", `${user.country_code}${user.phone}`],
+    ["Prime", prime ? success("Yes") : "No"],
+    ["Address", addressLabel],
+    ["Coords", `${config.lat}, ${config.lng}`],
+  ]);
 
   await saveConfig(config);
-  console.log(`\n${G}Config saved! You can now use the CLI.${X}`);
+  console.log(`${ok("Config saved! You can now use the CLI.")}\n`);
+
+  console.log(`  ${dim("What's next?")}\n`);
+  console.log(`  ${hint("rappi search <query>")}     Search for food`);
+  console.log(`  ${hint("rappi restaurants")}         Browse restaurants`);
+  console.log(`  ${hint("rappi addresses")}           Check delivery address\n`);
 } catch (err: any) {
-  console.error(`\nToken verification failed: ${err.message}`);
-  console.error("The token may have expired. Try logging in again.");
+  console.log(`\n${fail(`Token verification failed: ${err.message}`)}`);
+  console.log(`  ${dim("The token may have expired. Try logging in again.")}\n`);
   process.exit(1);
 }

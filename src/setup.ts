@@ -2,10 +2,11 @@ import { saveConfig } from "./config";
 import { getUser, isPrime } from "./services/auth";
 import { getAddresses } from "./services/address";
 import type { RappiConfig } from "./schemas/config";
+import { printDetail, withSpinner, ok, fail, dim, success, hint } from "./ui";
 
 const token = process.argv[2];
 if (!token) {
-  console.error("Usage: bun run src/setup.ts <bearer-token> [lat] [lng]");
+  console.error("Usage: rappi setup <bearer-token> [lat] [lng]");
   console.error("\nGet your token from browser DevTools → Network → copy the Authorization header value");
   process.exit(1);
 }
@@ -21,17 +22,11 @@ const config: RappiConfig = {
   lng: lngArg ? parseFloat(lngArg) : -74.063644,
 };
 
-console.log("Verifying token...");
-const user = await getUser(config);
-console.log(`\n  Welcome, ${user.name}!`);
-console.log(`  Email: ${user.email}`);
-console.log(`  Phone: ${user.country_code}${user.phone}`);
-console.log(`  Loyalty: ${user.loyalty.description} (${user.loyalty.type})`);
+const [user, prime] = await withSpinner("Verifying token...", () =>
+  Promise.all([getUser(config), isPrime(config)]),
+);
 
-const prime = await isPrime(config);
-console.log(`  Prime: ${prime ? "Yes" : "No"}`);
-
-// Auto-sync with active delivery address (unless lat/lng explicitly provided)
+let addressLabel: string | undefined;
 if (!latArg) {
   try {
     const { addresses } = await getAddresses(config);
@@ -39,15 +34,24 @@ if (!latArg) {
     if (active) {
       config.lat = active.lat;
       config.lng = active.lng;
-      const label = active.tag || active.address;
-      console.log(`  Address: ${label} (${active.address})`);
+      addressLabel = `${active.tag || active.address} (${active.address})`;
     }
-  } catch {
-    // Addresses endpoint may fail — use default coords
-  }
+  } catch {}
 }
 
-console.log(`  Coords: ${config.lat}, ${config.lng}`);
+printDetail(`Welcome, ${user.name}!`, [
+  ["Email", user.email],
+  ["Phone", `${user.country_code}${user.phone}`],
+  ["Loyalty", `${user.loyalty.description} (${user.loyalty.type})`],
+  ["Prime", prime ? success("Yes") : "No"],
+  ["Address", addressLabel],
+  ["Coords", `${config.lat}, ${config.lng}`],
+]);
 
 await saveConfig(config);
-console.log("\nConfig saved! You can now use the CLI.");
+console.log(`${ok("Config saved! You can now use the CLI.")}\n`);
+
+console.log(`  ${dim("What's next?")}\n`);
+console.log(`  ${hint("rappi search <query>")}     Search for food`);
+console.log(`  ${hint("rappi restaurants")}         Browse restaurants`);
+console.log(`  ${hint("rappi addresses")}           Check delivery address\n`);

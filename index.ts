@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { resolve, dirname } from "path";
 import { readFileSync } from "fs";
+import chalk from "chalk";
 
 const ROOT = dirname(Bun.main);
 const command = process.argv[2];
@@ -18,13 +19,11 @@ const updateCheck = skipUpdateCheck
       .then((r) => r.json())
       .then((data: any) => {
         if (data.version && data.version !== currentVersion) {
-          const Y = "\x1b[33m";
-          const B = "\x1b[1m";
-          const X = "\x1b[0m";
+          const orange = chalk.hex("#FF441F");
           console.log(
-            `\n${Y}${B}Update available:${X}${Y} ${currentVersion} -> ${data.version}${X}`
+            `\n  ${orange.bold("Update available:")} ${chalk.dim(currentVersion)} ${chalk.dim("\u2192")} ${orange(data.version)}`
           );
-          console.log(`${Y}Run ${B}npm install -g rappi-cli@latest${X}${Y} to update${X}\n`);
+          console.log(`  Run ${chalk.cyan("npm install -g rappi-cli@latest")} to update\n`);
         }
       })
       .catch(() => {});
@@ -50,45 +49,47 @@ const commands: Record<string, string> = {
 };
 
 if (!command || command === "help" || !commands[command]) {
-  const R = "\x1b[38;2;255;68;31m"; // #FF441F
-  const X = "\x1b[0m";
+  const R = chalk.hex("#FF441F");
+  const d = chalk.dim;
+  const c = chalk.cyan;
+  const b = chalk.bold;
+
   console.log(`
-${R}  ██████  ███████ ██████  ██████  ███████         ███████ ██      ███████
+${R(`  ██████  ███████ ██████  ██████  ███████         ███████ ██      ███████
   ██   ██ ██   ██ ██   ██ ██   ██   ███           ██      ██        ███
   ██████  ███████ ██████  ██████    ███           ██      ██        ███
   ██  ██  ██   ██ ██      ██        ███           ██      ██        ███
-  ██   ██ ██   ██ ██      ██      ███████         ███████ ███████ ███████${X}
+  ██   ██ ██   ██ ██      ██      ███████         ███████ ███████ ███████`)}
 
-  Order from Rappi via the terminal
+  ${d(`v${currentVersion}  ·  Order from Rappi via the terminal`)}
 
-Browse:
-  search <query>               Search products and stores
-  restaurants [limit]          List nearby restaurants
-  store <store_id>             Show store details and menu
-  product <store_id> <prod_id> Show product options (toppings)
+${b("Browse")}
+  ${c("search")} ${d("<query>")}               Search products and stores
+  ${c("restaurants")} ${d("[limit]")}          List nearby restaurants
+  ${c("store")} ${d("<store_id>")}             Show store details and menu
+  ${c("product")} ${d("<store_id> <prod_id>")} Show product options (toppings)
 
-Order:
-  add-to-cart <store> <prod> [name] [qty] [toppings]  Add product to cart
-  remove-from-cart <product_id>  Remove product from cart
-  cart                         View current cart
-  tip <amount>                 Set tip for the delivery (COP)
-  checkout [store_type] [tip]  Preview order summary (optional tip)
-  place-order [store_type]     Place the order!
-  orders                       Track active orders
+${b("Order")}
+  ${c("add-to-cart")} ${d("<store> <prod> [name] [qty] [toppings]")}  Add to cart
+  ${c("remove-from-cart")} ${d("<product_id>")}  Remove from cart
+  ${c("cart")}                         View current cart
+  ${c("tip")} ${d("<amount>")}                 Set tip for delivery (COP)
+  ${c("checkout")} ${d("[store_type] [tip]")}  Preview order summary
+  ${c("place-order")} ${d("[store_type]")}     Place the order!
+  ${c("orders")}                       Track active orders
 
-Account:
-  login [lat] [lng]            Log in via browser (auto-captures token)
-  setup <token> [lat] [lng]    Manual token setup
-  addresses                    List saved addresses
-  addresses set <id>           Set delivery address
-  whoami                       Show user info
+${b("Account")}
+  ${c("login")} ${d("[lat] [lng]")}            Log in via browser
+  ${c("setup")} ${d("<token> [lat] [lng]")}    Manual token setup
+  ${c("addresses")}                    List saved addresses
+  ${c("addresses set")} ${d("<id>")}           Set delivery address
+  ${c("whoami")}                       Show user info
 
-API:
-  server                       Start REST API server (port 3100)
-  mcp                          Start MCP server (for Claude Code)
+${b("API")}
+  ${c("server")}                       Start REST API server (port 3100)
+  ${c("mcp")}                          Start MCP server (for Claude Code)
 
-Usage:
-  rappi <command> [args...]
+${d("Usage:")}  rappi <command> [args...]
 `);
   process.exit(command && command !== "help" ? 1 : 0);
 }

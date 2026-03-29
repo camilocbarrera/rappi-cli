@@ -1,47 +1,46 @@
 import { loadConfig } from "../config";
+import { imageUrl } from "../formatters";
 import { getStoreDetail } from "../services/store";
+import { printDetail, printTable, withSpinner, rappiOrangeBold, dim, bold, hint, success, warn } from "../ui";
 
 const storeId = parseInt(process.argv[2]);
 if (!storeId) {
-  console.error("Usage: bun run src/commands/store.ts <store_id>");
+  console.error("Usage: rappi store <store_id>");
   process.exit(1);
 }
 
 const config = await loadConfig();
-const store = await getStoreDetail(storeId, config);
+const store = await withSpinner("Loading store...", () => getStoreDetail(storeId, config));
 
-console.log(`${store.name}`);
-console.log(`${"─".repeat(store.name.length)}`);
-console.log(`ID:       ${store.store_id}`);
-console.log(`Address:  ${store.address}`);
-console.log(`Type:     ${store.store_type?.description || store.store_type?.id}`);
-console.log(`Status:   ${store.status?.status}`);
-console.log(`Cooking:  ${store.min_cooking_time}-${store.max_cooking_time} min`);
-console.log(`Brand:    ${store.brand?.name}`);
-if (store.logo) console.log(`Logo:     ${store.logo}`);
-if (store.background) console.log(`Banner:   ${store.background}`);
+const status = store.status?.status === "open" ? success("OPEN") : warn("CLOSED");
 
-if (store.delivery_methods?.length) {
-  console.log(`Delivery: ${store.delivery_methods.map((d: any) => d.type).join(", ")}`);
-}
+printDetail(store.name, [
+  ["ID", String(store.store_id)],
+  ["Address", store.address],
+  ["Type", store.store_type?.description || store.store_type?.id],
+  ["Status", status],
+  ["Cooking", `${store.min_cooking_time}-${store.max_cooking_time} min`],
+  ["Brand", store.brand?.name],
+  ["Logo", store.logo ? hint(imageUrl(store.logo, "restaurants_logo")) : null],
+  ["Banner", store.background ? hint(imageUrl(store.background, "restaurants_background")) : null],
+  ["Delivery", store.delivery_methods?.length ? store.delivery_methods.map((d: any) => d.type).join(", ") : null],
+]);
 
 if (store.corridors?.length) {
-  console.log(`\nMenu:`);
+  console.log(`  ${rappiOrangeBold("Menu")}\n`);
+
   for (const corridor of store.corridors) {
-    console.log(`\n  ── ${corridor.name} ──`);
-    if (corridor.products?.length) {
-      for (const p of corridor.products) {
+    printTable({
+      title: corridor.name,
+      head: ["ID", "Product", "Price", ""],
+      rows: corridor.products?.map((p: any) => {
         const price = `$${p.price.toLocaleString("es-CO")}`;
-        const stock = p.in_stock ? "" : " (OUT OF STOCK)";
-        const toppings = p.has_toppings ? " [+options]" : "";
-        console.log(`  [${p.id}] ${p.name} — ${price}${toppings}${stock}`);
-        if (p.description) {
-          console.log(`         ${p.description.slice(0, 80)}`);
-        }
-        if (p.image) {
-          console.log(`         Image: ${p.image}`);
-        }
-      }
-    }
+        const flags = [
+          !p.in_stock ? dim("OUT OF STOCK") : null,
+          p.has_toppings ? dim("[+options]") : null,
+        ].filter(Boolean).join(" ");
+        return [String(p.id), p.name, price, flags || null];
+      }) || [],
+    });
   }
 }

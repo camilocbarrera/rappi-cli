@@ -1,40 +1,51 @@
 import { loadConfig } from "../config";
+import { imageUrl } from "../formatters";
 import { search } from "../services/search";
+import { printTable, withSpinner, rappiOrangeBold, dim, bold, hint } from "../ui";
 
 const query = process.argv[2];
 if (!query) {
-  console.error("Usage: bun run src/commands/search.ts <query>");
+  console.error("Usage: rappi search <query>");
   process.exit(1);
 }
 
 const config = await loadConfig();
-const result = await search(query, config);
+const result = await withSpinner(`Searching "${query}"...`, () => search(query, config));
 
 if (!result.stores?.length) {
-  console.log(`No results for "${query}"`);
+  console.log(`\n  No results for "${query}"\n`);
   process.exit(0);
 }
 
-console.log(`Results for "${query}":\n`);
+console.log(`\n  ${rappiOrangeBold(`Results for "${query}"`)}\n`);
 
 for (const store of result.stores) {
   const shipping = store.shipping_cost
     ? `$${store.shipping_cost.toLocaleString("es-CO")}`
     : "Free";
-  console.log(`  [${store.store_id}] ${store.store_name}`);
-  console.log(`    Type: ${store.store_type}  ETA: ${store.eta}  Shipping: ${shipping}`);
-  if (store.logo) console.log(`    Logo: ${store.logo}`);
+
+  console.log(`  ${bold(`[${store.store_id}]`)} ${store.store_name}`);
+  console.log(`  ${dim("Type")} ${store.store_type}  ${dim("ETA")} ${store.eta}  ${dim("Shipping")} ${shipping}`);
+  if (store.logo) console.log(`  ${dim("Logo")} ${hint(imageUrl(store.logo, "restaurants_logo"))}`);
 
   if (store.products?.length) {
+    printTable({
+      head: ["ID", "Product", "Price", ""],
+      rows: store.products.slice(0, 3).map((p) => {
+        const price = `$${p.price.toLocaleString("es-CO")}`;
+        const flags = [
+          p.discount > 0 ? `${dim(`-${p.discount}%`)}` : null,
+          !p.in_stock ? dim("OUT OF STOCK") : null,
+          p.has_toppings ? dim("[+options]") : null,
+        ].filter(Boolean).join(" ");
+        return [String(p.product_id), p.name, price, flags || null];
+      }),
+    });
     for (const p of store.products.slice(0, 3)) {
-      const price = `$${p.price.toLocaleString("es-CO")}`;
-      const stock = p.in_stock ? "" : " (OUT OF STOCK)";
-      const discount = p.discount > 0 ? ` -${p.discount}%` : "";
-      console.log(`    • [${p.product_id}] ${p.name} — ${price}${discount}${stock}`);
-      if (p.image) console.log(`      Image: ${p.image}`);
+      if (p.image) console.log(`    ${dim(`${p.name}:`)} ${hint(imageUrl(p.image))}`);
     }
   }
-  console.log("");
+  console.log();
 }
 
-console.log(`Total: ${result.stores.length} stores found`);
+console.log(`  ${dim(`${result.stores.length} stores found`)}\n`);

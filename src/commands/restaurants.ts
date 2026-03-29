@@ -1,27 +1,30 @@
 import { loadConfig } from "../config";
+import { imageUrl } from "../formatters";
 import { getRestaurantCatalog } from "../services/store";
+import { printTable, withSpinner, rappiOrangeBold, dim, warn } from "../ui";
 
 const limit = parseInt(process.argv[2] || "20");
 const config = await loadConfig();
-const catalog = await getRestaurantCatalog(config, { limit });
+const catalog = await withSpinner("Loading restaurants...", () =>
+  getRestaurantCatalog(config, { limit }),
+);
 
 if (!catalog.stores?.length) {
-  console.log("No restaurants available near you.");
+  console.log("\n  No restaurants available near you.\n");
   process.exit(0);
 }
 
-console.log(`Restaurants near you:\n`);
+printTable({
+  title: "Restaurants near you",
+  head: ["ID", "Name", "ETA", "Shipping", "Rating", ""],
+  rows: catalog.stores.map((s) => {
+    const shipping = s.shipping_cost
+      ? `$${s.shipping_cost.toLocaleString("es-CO")}`
+      : "Free";
+    const rating = s.score ? `${s.score}` : null;
+    const status = !s.is_available ? warn("CLOSED") : null;
+    return [String(s.store_id), s.name, s.eta, shipping, rating, status];
+  }),
+});
 
-for (const store of catalog.stores) {
-  const shipping = store.shipping_cost
-    ? `$${store.shipping_cost.toLocaleString("es-CO")}`
-    : "Free";
-  const rating = store.score ? `★ ${store.score}` : "";
-  const available = store.is_available ? "" : " (CLOSED)";
-  console.log(`  [${store.store_id}] ${store.name}${available}`);
-  console.log(`    ETA: ${store.eta}  Shipping: ${shipping}  ${rating}`);
-  if (store.logo) console.log(`    Logo: ${store.logo}`);
-  console.log("");
-}
-
-console.log(`Showing ${catalog.stores.length} restaurants`);
+console.log(`\n  ${dim(`Showing ${catalog.stores.length} restaurants`)}\n`);

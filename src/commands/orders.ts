@@ -1,31 +1,37 @@
 import { loadConfig } from "../config";
 import { getOrders } from "../services/order";
+import { printTable, withSpinner, rappiOrangeBold, dim, bold, warn } from "../ui";
 
 const config = await loadConfig();
-const data = await getOrders(config);
+const data = await withSpinner("Loading orders...", () => getOrders(config));
 
 if (data.active_orders?.length) {
-  console.log("Active Orders:\n");
-  for (const order of data.active_orders) {
-    const storeName = order.store?.name ?? "Unknown store";
-    const state = order.state ?? "unknown";
-    console.log(`  [${order.id}] ${storeName} — ${state}`);
-    if (order.eta) console.log(`    ETA: ${order.eta} min`);
-    if (order.total) console.log(`    Total: $${order.total.toLocaleString("es-CO")}`);
-    if (order.store?.address) console.log(`    Address: ${order.store.address}`);
-    if (order.delivery_method) console.log(`    Delivery: ${order.delivery_method}`);
-    if (order.place_at) console.log(`    Placed: ${order.place_at}`);
-    console.log("");
-  }
+  printTable({
+    title: "Active Orders",
+    head: ["ID", "Store", "Status", "ETA", "Total", "Delivery"],
+    rows: data.active_orders.map((o: any) => {
+      const store = o.store?.name ?? "Unknown";
+      const state = o.state ?? "unknown";
+      const eta = o.eta ? `${o.eta} min` : null;
+      const total = o.total ? `$${o.total.toLocaleString("es-CO")}` : null;
+      const delivery = o.delivery_method || null;
+      return [String(o.id), store, state, eta, total, delivery];
+    }),
+  });
+  console.log();
 } else {
-  console.log("No active orders.");
+  console.log(`\n  ${dim("No active orders.")}\n`);
 }
 
 if (data.cancel_orders?.length) {
-  console.log("\nCancelled Orders:\n");
-  for (const order of data.cancel_orders) {
-    const storeName = order.store?.name ?? "Unknown store";
-    const state = order.state ?? "cancelled";
-    console.log(`  [${order.id}] ${storeName} — ${state}`);
-  }
+  printTable({
+    title: "Cancelled Orders",
+    head: ["ID", "Store", "Status"],
+    rows: data.cancel_orders.map((o: any) => {
+      const store = o.store?.name ?? "Unknown";
+      const state = o.state ?? "cancelled";
+      return [String(o.id), store, warn(state)];
+    }),
+  });
+  console.log();
 }

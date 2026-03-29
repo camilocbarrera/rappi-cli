@@ -1,29 +1,25 @@
 import { loadConfig } from "../config";
 import { removeFromCart, getCarts } from "../services/cart";
+import { withSpinner, ok, fail, dim, bold } from "../ui";
 
 const productId = process.argv[2];
 const storeType = process.argv[3] || "restaurant";
 
 if (!productId) {
-  console.error(
-    "Usage: rappi remove-from-cart <product_id> [store_type]"
-  );
-  console.error(
-    '  product_id: compound ID from cart (e.g., "900006505_3522980")'
-  );
+  console.error("Usage: rappi remove-from-cart <product_id> [store_type]");
+  console.error('  product_id: compound ID from cart (e.g., "900006505_3522980")');
   process.exit(1);
 }
 
 const config = await loadConfig();
 
-// Show what we're removing
-const carts = await getCarts(config);
+const carts = await withSpinner("Loading cart...", () => getCarts(config));
 let found = false;
 for (const cart of carts) {
   for (const store of cart.stores) {
     const product = store.products.find((p) => p.id === productId);
     if (product) {
-      console.log(`Removing: ${product.name} x${product.units} from ${store.name}`);
+      console.log(`\n  ${dim("Removing")} ${bold(product.name)} ${dim(`x${product.units} from ${store.name}`)}`);
       found = true;
       break;
     }
@@ -32,30 +28,28 @@ for (const cart of carts) {
 }
 
 if (!found) {
-  console.error(`Product "${productId}" not found in cart.`);
-  console.error("Run `rappi cart` to see product IDs.");
+  console.log(`\n${fail(`Product "${productId}" not found in cart.`)}`);
+  console.log(`  ${dim("Run")} rappi cart ${dim("to see product IDs.")}\n`);
   process.exit(1);
 }
 
-await removeFromCart(storeType, productId, config);
-console.log("Removed from cart!");
+await withSpinner("Removing...", () => removeFromCart(storeType, productId, config));
+console.log(`${ok("Removed from cart")}\n`);
 
-// Show updated cart
 const updated = await getCarts(config);
 if (!updated.length || updated.every((c) => !c.stores.length)) {
-  console.log("\nCart is now empty.");
+  console.log(`  ${dim("Cart is now empty.")}\n`);
 } else {
   for (const cart of updated) {
     for (const store of cart.stores) {
-      console.log(`\n  ${store.name} [${store.id}]`);
+      console.log(`  ${bold(store.name)} ${dim(`[${store.id}]`)}`);
       for (const p of store.products) {
-        const price =
-          p.total > 0
-            ? `$${p.total.toLocaleString("es-CO")}`
-            : `$${p.price.toLocaleString("es-CO")}`;
-        console.log(`    ${p.name} x${p.units} — ${price}`);
+        const price = p.total > 0
+          ? `$${p.total.toLocaleString("es-CO")}`
+          : `$${p.price.toLocaleString("es-CO")}`;
+        console.log(`    ${p.name} ${dim(`x${p.units}`)} -- ${price}`);
       }
-      console.log(`  Total: $${store.total.toLocaleString("es-CO")}`);
+      console.log(`  ${dim("Total")} ${bold(`$${store.total.toLocaleString("es-CO")}`)}\n`);
     }
   }
 }
