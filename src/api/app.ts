@@ -6,7 +6,7 @@ import { reverseGeocode, getAddresses, setActiveAddress } from "../services/addr
 import { search } from "../services/search";
 import { getStoreDetail, getRestaurantCatalog } from "../services/store";
 import { getProductToppings } from "../services/product";
-import { addToCart, getCarts, recalculateCart } from "../services/cart";
+import { addToCart, removeFromCart, getCarts, recalculateCart } from "../services/cart";
 import { getCheckoutDetail, getCheckoutWidgets, setTip } from "../services/checkout";
 import { placeOrder, getOrders } from "../services/order";
 import { DEFAULT_STORE_TYPE } from "../constants";
@@ -105,6 +105,14 @@ app.post("/api/cart/add", async (c) => {
     config
   );
   return c.json(result);
+});
+
+app.delete("/api/cart/product/:productId", async (c) => {
+  const config = c.get("config");
+  const productId = c.req.param("productId");
+  const storeType = c.req.query("storeType") || DEFAULT_STORE_TYPE;
+  await removeFromCart(storeType, productId, config);
+  return c.json({ ok: true, removed: productId });
 });
 
 app.get("/api/cart", async (c) => {

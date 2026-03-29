@@ -39,6 +39,7 @@
     "product": "bun run src/commands/product.ts",
     "cart": "bun run src/commands/cart.ts",
     "add-to-cart": "bun run src/commands/add-to-cart.ts",
+    "remove-from-cart": "bun run src/commands/remove-from-cart.ts",
     "checkout": "bun run src/commands/checkout.ts",
     "place-order": "bun run src/commands/place-order.ts",
     "orders": "bun run src/commands/orders.ts",

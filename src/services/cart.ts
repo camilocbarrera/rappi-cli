@@ -3,7 +3,7 @@ import type {
   CartStoreInput,
   CartResponse,
 } from "../schemas/cart";
-import { post, put } from "../http";
+import { del, post, put } from "../http";
 
 export async function addToCart(
   storeType: string,
@@ -51,6 +51,17 @@ export async function getCarts(config: RappiConfig): Promise<CartResponse[]> {
   return post<CartResponse[]>(
     "/api/ms/shopping-cart/v1/all/get",
     {},
+    config
+  );
+}
+
+export async function removeFromCart(
+  storeType: string,
+  productId: string,
+  config: RappiConfig
+): Promise<unknown> {
+  return del(
+    `/api/ms/shopping-cart/v2/${storeType}/product/${productId}`,
     config
   );
 }

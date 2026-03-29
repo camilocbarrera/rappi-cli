@@ -46,3 +46,16 @@ export async function put<T>(
     throw new Error(`PUT ${path} → ${res.status} ${res.statusText}`);
   return res.json();
 }
+
+export async function del<T>(
+  path: string,
+  config: RappiConfig
+): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "DELETE",
+    headers: buildHeaders(config),
+  });
+  if (!res.ok)
+    throw new Error(`DELETE ${path} → ${res.status} ${res.statusText}`);
+  return res.json();
+}

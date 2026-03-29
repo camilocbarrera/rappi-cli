@@ -13,6 +13,7 @@ const commands: Record<string, string> = {
   product: "src/commands/product.ts",
   cart: "src/commands/cart.ts",
   "add-to-cart": "src/commands/add-to-cart.ts",
+  "remove-from-cart": "src/commands/remove-from-cart.ts",
   checkout: "src/commands/checkout.ts",
   "place-order": "src/commands/place-order.ts",
   orders: "src/commands/orders.ts",
@@ -43,6 +44,7 @@ Browse:
 
 Order:
   add-to-cart <store> <prod> [name] [qty] [toppings]  Add product to cart
+  remove-from-cart <product_id>  Remove product from cart
   cart                         View current cart
   tip <amount>                 Set tip for the delivery (COP)
   checkout [store_type] [tip]  Preview order summary (optional tip)
