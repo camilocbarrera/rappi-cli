@@ -95,12 +95,46 @@ src/
   config.ts          → Config load/save with Zod validation
   formatters.ts      → Price formatting (COP)
   schemas/           → Zod schemas (auth, address, search, store, product, cart, checkout, order)
-  services/          → Business logic (shared by CLI + API)
+  services/          → Business logic (shared by CLI, API + MCP)
   api/app.ts         → Hono REST API
+  mcp/index.ts       → MCP server (13 tools for Claude)
   commands/          → CLI commands
 index.ts             → CLI entry point
 server.ts            → API server entry point
 ```
+
+## MCP Server
+
+The CLI includes an MCP server (`src/mcp/index.ts`) that exposes 13 tools for Claude to call natively. When the MCP server is configured, Claude can search, order, and track without running CLI commands.
+
+**Tools**: `whoami`, `search`, `list_restaurants`, `get_store`, `get_product_options`, `add_to_cart`, `get_cart`, `checkout_preview`, `set_tip`, `place_order`, `track_orders`, `list_addresses`, `set_address`
+
+**Setup for Claude Code** — add `.mcp.json` to project root:
+```json
+{
+  "mcpServers": {
+    "rappi": {
+      "command": "bun",
+      "args": ["run", "src/mcp/index.ts"],
+      "cwd": "/path/to/rappi-cli"
+    }
+  }
+}
+```
+
+**Setup for Claude Desktop** — add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "rappi": {
+      "command": "/full/path/to/.bun/bin/bun",
+      "args": ["run", "/full/path/to/rappi-cli/src/mcp/index.ts"]
+    }
+  }
+}
+```
+
+> Use `which bun` to get the full bun path — Claude Desktop doesn't inherit shell PATH.
 
 ## API Reference
 

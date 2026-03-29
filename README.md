@@ -6,7 +6,7 @@
 ██   ██ ██   ██ ██      ██      ███████         ███████ ███████ ███████
 ```
 
-Order from [Rappi](https://www.rappi.com.co/) directly from the terminal or via REST API. Built with Bun, TypeScript, Zod, and Hono.
+Order from [Rappi](https://www.rappi.com.co/) directly from the terminal, via REST API, or as an MCP server for Claude. Built with Bun, TypeScript, Zod, and Hono.
 
 ## Setup
 
@@ -68,6 +68,60 @@ rappi server    # Starts on http://localhost:3100
 | GET | `/api/addresses` | List addresses |
 | POST | `/api/addresses/set` | Set address |
 
+## MCP Server (Claude Integration)
+
+The Rappi CLI includes an MCP (Model Context Protocol) server that lets Claude use Rappi tools natively — no CLI commands needed.
+
+### Setup for Claude Code
+
+Add `.mcp.json` to your project root:
+
+```json
+{
+  "mcpServers": {
+    "rappi": {
+      "command": "bun",
+      "args": ["run", "/path/to/rappi-cli/src/mcp/index.ts"]
+    }
+  }
+}
+```
+
+### Setup for Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "rappi": {
+      "command": "/path/to/.bun/bin/bun",
+      "args": ["run", "/path/to/rappi-cli/src/mcp/index.ts"]
+    }
+  }
+}
+```
+
+> Use the full path to `bun` for Claude Desktop (run `which bun` to find it).
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `whoami` | User profile + Prime status |
+| `search` | Search products and stores |
+| `list_restaurants` | Nearby restaurants |
+| `get_store` | Store detail + menu |
+| `get_product_options` | Product toppings/customization |
+| `add_to_cart` | Add to cart with toppings and price |
+| `get_cart` | View current cart |
+| `checkout_preview` | Order summary with price breakdown |
+| `set_tip` | Set delivery tip |
+| `place_order` | Place the order |
+| `track_orders` | Track active orders |
+| `list_addresses` | List saved addresses |
+| `set_address` | Set delivery address |
+
 ## Architecture
 
 ```
@@ -77,8 +131,9 @@ src/
   config.ts          → Config load/save with Zod validation
   formatters.ts      → Price formatting (COP)
   schemas/           → Zod schemas (auth, address, search, store, product, cart, checkout, order)
-  services/          → Business logic (shared by CLI + API)
+  services/          → Business logic (shared by CLI, API + MCP)
   api/app.ts         → Hono REST API
+  mcp/index.ts       → MCP server (13 tools for Claude)
   commands/          → CLI commands
 index.ts             → CLI entry point
 server.ts            → API server entry point
@@ -91,3 +146,4 @@ server.ts            → API server entry point
 - [Zod](https://zod.dev/) — Schema validation
 - [Hono](https://hono.dev/) — REST API framework
 - [Playwright](https://playwright.dev/) — Browser login automation
+- [MCP SDK](https://modelcontextprotocol.io/) — Claude integration (13 tools)
