@@ -1,0 +1,38 @@
+{
+  "name": "rappi-cli",
+  "bin": {
+    "rappi": "index.ts"
+  },
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "setup": "bun run src/setup.ts",
+    "whoami": "bun run src/commands/whoami.ts",
+    "search": "bun run src/commands/search.ts",
+    "restaurants": "bun run src/commands/restaurants.ts",
+    "store": "bun run src/commands/store.ts",
+    "product": "bun run src/commands/product.ts",
+    "cart": "bun run src/commands/cart.ts",
+    "add-to-cart": "bun run src/commands/add-to-cart.ts",
+    "checkout": "bun run src/commands/checkout.ts",
+    "place-order": "bun run src/commands/place-order.ts",
+    "orders": "bun run src/commands/orders.ts",
+    "tip": "bun run src/commands/tip.ts",
+    "login": "bun run src/commands/login.ts",
+    "addresses": "bun run src/commands/addresses.ts",
+    "server": "bun run server.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.7.6",
+    "hono": "^4.12.9",
+    "playwright": "^1.58.2",
+    "zod": "^4.3.6"
+  }
+}
