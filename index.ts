@@ -20,6 +20,7 @@ const commands: Record<string, string> = {
   addresses: "src/commands/addresses.ts",
   tip: "src/commands/tip.ts",
   server: "../server.ts",
+  mcp: "src/mcp/index.ts",
 };
 
 if (!command || command === "help" || !commands[command]) {
@@ -57,6 +58,7 @@ Account:
 
 API:
   server                       Start REST API server (port 3100)
+  mcp                          Start MCP server (for Claude Code)
 
 Usage:
   rappi <command> [args...]
