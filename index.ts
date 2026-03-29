@@ -1,8 +1,33 @@
 #!/usr/bin/env bun
 import { resolve, dirname } from "path";
+import { readFileSync } from "fs";
 
 const ROOT = dirname(Bun.main);
 const command = process.argv[2];
+
+// --- Update check (non-blocking) ---
+const pkgPath = resolve(ROOT, "package.json");
+const currentVersion = JSON.parse(readFileSync(pkgPath, "utf-8")).version;
+
+const skipUpdateCheck = !command || command === "mcp" || command === "server";
+const updateCheck = skipUpdateCheck
+  ? Promise.resolve()
+  : fetch("https://registry.npmjs.org/rappi-cli/latest", {
+      signal: AbortSignal.timeout(2000),
+    })
+      .then((r) => r.json())
+      .then((data: any) => {
+        if (data.version && data.version !== currentVersion) {
+          const Y = "\x1b[33m";
+          const B = "\x1b[1m";
+          const X = "\x1b[0m";
+          console.log(
+            `\n${Y}${B}Update available:${X}${Y} ${currentVersion} -> ${data.version}${X}`
+          );
+          console.log(`${Y}Run ${B}npm install -g rappi-cli@latest${X}${Y} to update${X}\n`);
+        }
+      })
+      .catch(() => {});
 
 const commands: Record<string, string> = {
   setup: "src/setup.ts",
@@ -73,4 +98,5 @@ const proc = Bun.spawn(["bun", "run", resolve(ROOT, commands[command]), ...args]
   stdio: ["inherit", "inherit", "inherit"],
 });
 const exitCode = await proc.exited;
+await updateCheck;
 process.exit(exitCode);
