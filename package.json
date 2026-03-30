@@ -1,6 +1,6 @@
 {
   "name": "rappi-cli",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Order from Rappi via terminal, REST API, or MCP server for Claude",
   "author": "Cristian Correa",
   "license": "MIT",
